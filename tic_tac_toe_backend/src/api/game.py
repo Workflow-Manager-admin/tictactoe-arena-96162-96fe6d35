@@ -157,7 +157,12 @@ async def play_move(
     board = json.loads(game["board"])
     moves = json.loads(game["moves"])
     if game["winner"] or game["is_draw"]:
-        raise HTTPException(400, f"Game is already over (winner: {game['winner']}, draw: {game['is_draw']})")
+        raise HTTPException(
+            400,
+            "Game is already over (winner: {}, draw: {})".format(
+                game["winner"], game["is_draw"]
+            ),
+        )
 
     # Validate move
     if board[req.row][req.col] != "":
@@ -216,7 +221,9 @@ async def play_move(
         "is_draw": draw,
         "next_to_move": next_player,
         "finished_at": finished_at,
-        "status": "finished" if winner or draw else "active"
+        "status": (
+            "finished" if winner or draw else "active"
+        ),
     }
 
     supabase.table("games").update(update_fields).eq("id", req.game_id).execute()
@@ -291,7 +298,12 @@ async def leaderboard():
     Aggregates win/loss/draw stats by username for leaderboard.
     """
     import json
-    raw_games = supabase.table("games").select("*").not_("status", "eq", "waiting").execute()
+    raw_games = (
+        supabase.table("games")
+        .select("*")
+        .not_("status", "eq", "waiting")
+        .execute()
+    )
     stats = {}
     for game in raw_games.data:
         players = json.loads(game["players"])
@@ -309,7 +321,10 @@ async def leaderboard():
                 stats[user]["wins"] += 1
             elif winner is not None:
                 stats[user]["losses"] += 1
-    out = [LeaderboardEntry(username=k, **v) for k, v in stats.items()]
+    out = [
+        LeaderboardEntry(username=k, **v)
+        for k, v in stats.items()
+    ]
     out.sort(
         key=lambda e: (
             -e.wins,
